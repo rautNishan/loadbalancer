@@ -1,12 +1,21 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net"
+	"sync"
 )
 
-func forwardConnection(conn net.Conn, backendList []string) {
+type Backends struct {
+	servers []string
+	n       int
+	mu      sync.Mutex
+}
 
+func forwardConnection(conn net.Conn, backend *Backends) {
+	defer conn.Close()
+	fmt.Println("Backend: ", backend)
 }
 
 func main() {
@@ -16,11 +25,15 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer listner.Close()
+
+	//Pointer to backend
+	b := &Backends{servers: backendList, n: 0}
 	for {
 		conn, err := listner.Accept()
 		if err != nil {
 			log.Fatal(err)
 		}
-		go forwardConnection(conn, backendList)
+		go forwardConnection(conn, b)
 	}
 }
