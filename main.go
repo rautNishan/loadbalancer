@@ -13,19 +13,25 @@ type Backend struct {
 	n       uint64
 }
 
-// func copyData(destination net.Conn, source net.Conn) {
-// 	fmt.Println("Starting copy from source to destination")
-// 	defer fmt.Println("Finished copy from source to destination")
-// 	// defer wg.Done()
-// 	_, err := io.Copy(destination, source)
-// 	if err != nil {
-// 		log.Println("copyData error:", err)
-// 	}
-// 	if tcpConn, ok := destination.(*net.TCPConn); ok {
-// 		tcpConn.CloseWrite()
-// 	}
-
-// }
+func copyData(destination net.Conn, source net.Conn, wg *sync.WaitGroup) {
+	defer wg.Done()
+	buffer := make([]byte, 4*1024)
+	for {
+		n, err := source.Read(buffer)
+		if err != nil {
+			fmt.Println("Error: ", err)
+			break
+		}
+		_, err = destination.Write(buffer[:n])
+		if err != nil {
+			fmt.Println("Error : ", err)
+			break
+		}
+	}
+	if tcpConn, ok := destination.(*net.TCPConn); ok {
+		tcpConn.CloseWrite()
+	}
+}
 
 func RoundRobin(backend *Backend) string {
 	fmt.Println(backend.n)
@@ -55,50 +61,11 @@ func forwardConnection(clientConn net.Conn, backend *Backend) {
 		clientConn.Close()
 		fmt.Println("Connection Closed")
 	}()
+
 	var wg sync.WaitGroup
 	wg.Add(2)
-	go func() {
-		defer wg.Done()
-		fmt.Println("client->backend")
-		buffer := make([]byte, 4*1024)
-		for {
-			n, err := clientConn.Read(buffer)
-			fmt.Println("This is error while reading from client->backend: ", err)
-			if err != nil {
-				fmt.Println("Error while reading from client to backend: ", err)
-				break
-			}
-			_, err = serverConn.Write(buffer[:n])
-			if err != nil {
-				fmt.Println("Error while writing to backend: ", err)
-				break
-			}
-		}
-		if tcpConn, ok := serverConn.(*net.TCPConn); ok {
-			tcpConn.CloseWrite()
-		}
-	}()
-	go func() {
-		defer wg.Done()
-		fmt.Println("backend->client")
-		buffer := make([]byte, 4*1024)
-		for {
-			n, err := serverConn.Read(buffer)
-			fmt.Println("This is error while reading from backend->client: ", err)
-			if err != nil {
-				fmt.Println("Error while reading from backend to client: ", err)
-				break
-			}
-			_, err = clientConn.Write(buffer[:n])
-			if err != nil {
-				fmt.Println("Error while writing to backend: ", err)
-				break
-			}
-		}
-		if tcpConn, ok := clientConn.(*net.TCPConn); ok {
-			tcpConn.CloseWrite()
-		}
-	}()
+	go copyData(serverConn, clientConn, &wg)
+	go copyData(clientConn, serverConn, &wg)
 	wg.Wait()
 	fmt.Println("Wait Completes")
 }
