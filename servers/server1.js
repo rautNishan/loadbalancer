@@ -13,6 +13,6 @@ app.get("/", (req, res) => {
 
 app.get("/test", (req, res) => {
   console.log("Incoming Request In server 2");
-  for(let i=0;i<1000000;i++){}
+  for (let i = 0; i < 9000000000; i++) {}
   res.send("Loop World");
 });
