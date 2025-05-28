@@ -6,6 +6,7 @@ import (
 	"net"
 	"sync"
 	"sync/atomic"
+	"time"
 )
 
 type Backend struct {
@@ -17,6 +18,8 @@ func copyData(destination net.Conn, source net.Conn, wg *sync.WaitGroup) {
 	defer wg.Done()
 	buffer := make([]byte, 4*1024)
 	for {
+		//Close the connection with client
+		_ = source.SetReadDeadline(time.Now().Add(5 * time.Second))
 		n, err := source.Read(buffer)
 		if err != nil {
 			fmt.Println("Error: ", err)
