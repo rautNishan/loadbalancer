@@ -28,7 +28,8 @@ func copyData(destination net.Conn, source net.Conn, wg *sync.WaitGroup) {
 			break
 		}
 	}
-	if tcpConn, ok := destination.(*net.TCPConn); ok {
+	tcpConn, isTCP := destination.(*net.TCPConn)
+	if isTCP {
 		tcpConn.CloseWrite()
 	}
 }
