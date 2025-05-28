@@ -19,7 +19,7 @@ func copyData(destination net.Conn, source net.Conn, wg *sync.WaitGroup) {
 	buffer := make([]byte, 4*1024)
 	for {
 		//Close the connection with client
-		_ = source.SetReadDeadline(time.Now().Add(5 * time.Second))
+		_ = source.SetReadDeadline(time.Now().Add(20 * time.Second))
 		n, err := source.Read(buffer)
 		if err != nil {
 			fmt.Println("Error: ", err)
